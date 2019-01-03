@@ -1,0 +1,114 @@
+---
+title: "Stats_project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+`%>%` <- magrittr::`%>%`
+`%do%` <- foreach::`%do%`
+source("project_functions.R")
+library(ggplot2)
+library(dplyr)
+library(exactRankTests)
+```
+
+
+#### Lecture du fichier contenant les données ####
+
+```{r}
+literacy <- read.csv("literacy-by-years-of-schooling-us-1947.csv")
+```
+
+#### Histogramme et nuage de points ####
+
+```{r pressure, echo=FALSE}
+ggplot(literacy, aes(years, percentage_literate)) + geom_bar(stat = "identity", color = "chartreuse4", fill = "deepskyblue3") + labs(title = "Histogram of percentage of literacy per years of schooling", x = "Number of years of schooling", y = "Percentage of literacy")
+
+ggplot(literacy, aes(years, percentage_literate)) + geom_point(stat = "identity", color = "chartreuse4", fill = "deepskyblue3", size = 4) + geom_smooth(method = lm, se = FALSE) + labs(title = "Histogram of percentage of literacy per years of schooling", x = "Number of years of schooling", y = "Percentage of literacy")
+```
+
+
+
+#### Fit du modèle créé sur les données originelles ####
+```{r}
+x <- as.numeric(literacy$years)
+y <- as.numeric(literacy$percentage_literate)
+model1 <- lm(x ~ y, data = literacy)
+summary(model1)
+
+```
+
+
+
+Pour évaluer la significativité des données que nous étudions, nous allons effectuer des tests de standars sur des modèles de régression linéaire.
+
+POur cela, nous allons devoir créer de nouveaux samples de données en nous basant sur celles déjà observées, tout en conservant le même coefficient que les données originelles.
+
+#### Création des nouveaux samples ####
+
+```{r}
+set.seed(1)
+literacy_500 <- dplyr::sample_n(literacy, 500, replace = TRUE) # génère aléatoirement 500 données
+literacy_1000 <- dplyr::sample_n(literacy, 1000, replace = TRUE) # génère aléatoirement 1000 données
+```
+
+
+#### Application du modèle de régression linéaire ####
+
+```{r}
+x_500 <- as.numeric(literacy_500$years)
+y_500 <- as.numeric(literacy_500$percentage_literate)
+model2 <- lm(x_500 ~ y_500, data = literacy_500)
+summary(model2)
+```
+
+```{r}
+x_1000 <- as.numeric(literacy_1000$years)
+y_1000 <- as.numeric(literacy_1000$percentage_literate)
+model3 <- lm(x_1000 ~ y_1000, data = literacy_1000)
+summary(model3)
+```
+
+Afin de vérifier si les données sont corrélées linéairement, nous effectuons ici un test de corrélation linéaire de Pearson sur nos 3 modèles.
+
+Plus le coefficient sera élevé, plus la corrélation linéaire sera forte.
+
+#### Tests de corrélation linéaire ####
+
+```{r}
+cor.test(x, y)
+cor.test(x_500, y_500)
+cor.test(x_1000, y_1000)
+```
+
+#Stockage des p_value dans l'optique de l'évaluation
+
+```{r}
+p_value1 = pvalues(model1)
+p_value2 = pvalues(model2)
+p_value3 = pvalues(model3)
+```
+
+
+
+##### Evaluation du modèle #####
+
+```{r}
+summary_literacy <- data.frame("conf 0.95" = c(eval1(p_value1),
+                                    eval1(p_value2),
+                                    eval1(p_value3)),
+                               "conf 0.999" = c(eval2(p_value1),
+                                    eval2(p_value2),
+                                    eval2(p_value3)),
+                               row.names = c("n = 5", "n = 500", "n = 1000"))
+
+
+#knitr::kable(summary_literacy)
+summary_literacy
+```
+
+
+Comme on peut le voir ici, les 3 modèles que nous avons construit prédisent, en accord avec la valeur de la p_value que l'hypothèse correcte est H1.
+
+Cela conforte donc notre hypothèse de départ, à savoir que le pourcentage d'alphabétisation augmente avec le nombre d'années d'étude dans une relation linéaire très forte (coef > 0.99).

@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 source("project_functions_gagner.R")
 library(ggplot2)
 library(dplyr)
-library(exactRankTests)
 ```
 
 Les données que nous étudierons ici sont issues de OECD, "Progress of literacy in various countries: a preliminary statistical study of available census data since 1900", UNESCO (Paris, 1953) (Table 152). 

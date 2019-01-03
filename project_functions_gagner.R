@@ -47,7 +47,6 @@ pvalues <- function (model) {
   } 
   f <- summary(model)
   pvalue <- f[[4]][,4][2]
-  #attributes(p) <- NULL
   return(pvalue)
 }
 

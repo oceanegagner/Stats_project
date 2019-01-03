@@ -7,11 +7,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 `%>%` <- magrittr::`%>%`
 `%do%` <- foreach::`%do%`
-source("project_functions.R")
+source("project_functions_gagner.R")
 library(ggplot2)
 library(dplyr)
 library(exactRankTests)
 ```
+
+Les données que nous étudierons ici sont issues de OECD, "Progress of literacy in various countries: a preliminary statistical study of available census data since 1900", UNESCO (Paris, 1953) (Table 152). 
+Elles correspondent au taux d'alphabétisation chez des personnes de plus de 14 ans aux Etats-Unis en 1947 en fonction du nombre d'années où ces personnes ont été scolarisées.
+
+L'hypothèse générale serait, au vu de ces résultats, que le taux d'alphabétisation augmente avec le nombre d'années d'étude. 
+
+Afin de formaliser cela d'un point de vue statistique, nous poserons deux hypothèses : une hypothèse 0 (ou H0) et une hypothèse 1 (H1).
+H0 correspondra au cas de figure où il n'y a pas de relation linéaire entre le nombre d'années d'étude et le taux d'alphabétisation, et H1 sera notre hypothèse de base.
 
 
 #### Lecture du fichier contenant les données ####
@@ -20,17 +28,25 @@ library(exactRankTests)
 literacy <- read.csv("literacy-by-years-of-schooling-us-1947.csv")
 ```
 
+On représente les données sous forme d'histogramme et de nuage de points afin de visualiser si oui ou non il y aurait graphiquement une relation linéaire entre les données.
+
 #### Histogramme et nuage de points ####
 
 ```{r pressure, echo=FALSE}
-ggplot(literacy, aes(years, percentage_literate)) + geom_bar(stat = "identity", color = "chartreuse4", fill = "deepskyblue3") + labs(title = "Histogram of percentage of literacy per years of schooling", x = "Number of years of schooling", y = "Percentage of literacy")
+ggplot(literacy, aes(years, percentage_literate)) + 
+  geom_bar(stat = "identity", color = "chartreuse4", fill = "deepskyblue3") + 
+  labs(title = "Histogram of percentage of literacy per years of schooling", x = "Number of years of schooling", y = "Percentage of literacy")
 
-ggplot(literacy, aes(years, percentage_literate)) + geom_point(stat = "identity", color = "chartreuse4", fill = "deepskyblue3", size = 4) + geom_smooth(method = lm, se = FALSE) + labs(title = "Histogram of percentage of literacy per years of schooling", x = "Number of years of schooling", y = "Percentage of literacy")
+ggplot(literacy, aes(years, percentage_literate)) + 
+  geom_point(stat = "identity", color = "chartreuse4", fill = "deepskyblue3", size = 4) + 
+  geom_smooth(method = lm, se = FALSE) + 
+  labs(title = "Histogram of percentage of literacy per years of schooling", x = "Number of years of schooling", y = "Percentage of literacy")
 ```
 
-
+Les graphiques nous indiquant une forte corrélation linéaire, nous pouvons logiquement utiliser un modèle de type régression linéaire pour entrainer nos données.
 
 #### Fit du modèle créé sur les données originelles ####
+
 ```{r}
 x <- as.numeric(literacy$years)
 y <- as.numeric(literacy$percentage_literate)
@@ -50,11 +66,12 @@ POur cela, nous allons devoir créer de nouveaux samples de données en nous basan
 ```{r}
 set.seed(1)
 literacy_500 <- dplyr::sample_n(literacy, 500, replace = TRUE) # génère aléatoirement 500 données
+
 literacy_1000 <- dplyr::sample_n(literacy, 1000, replace = TRUE) # génère aléatoirement 1000 données
 ```
 
 
-#### Application du modèle de régression linéaire ####
+#### Fit du modèle sur les nouveaux samples ####
 
 ```{r}
 x_500 <- as.numeric(literacy_500$years)
@@ -82,6 +99,10 @@ cor.test(x_500, y_500)
 cor.test(x_1000, y_1000)
 ```
 
+Comme on peut le voir, les tests nous indiquent des coeffcient de corrélation très élevés.
+Cela confirme une partie de notre hypothèse, à savoir le fait que les valeurs sont linéairement corrélées.
+
+
 #Stockage des p_value dans l'optique de l'évaluation
 
 ```{r}
@@ -90,6 +111,8 @@ p_value2 = pvalues(model2)
 p_value3 = pvalues(model3)
 ```
 
+On vérifie que les valeurs de p_value de nos modèles sont inférieures à des niveaux de confiance suffisants.
+Nous avons choisi ici 0.95 et 0.999 afin d'évaluer quelle hypothèse serait la meilleure en fonction du risque.
 
 
 ##### Evaluation du modèle #####
@@ -104,11 +127,11 @@ summary_literacy <- data.frame("conf 0.95" = c(eval1(p_value1),
                                row.names = c("n = 5", "n = 500", "n = 1000"))
 
 
-#knitr::kable(summary_literacy)
 summary_literacy
 ```
 
 
-Comme on peut le voir ici, les 3 modèles que nous avons construit prédisent, en accord avec la valeur de la p_value que l'hypothèse correcte est H1.
+Comme on peut le voir ici, les 3 modèles que nous avons construit prédisent, en accord avec la valeur de la p_value, que l'hypothèse correcte est H1.
 
 Cela conforte donc notre hypothèse de départ, à savoir que le pourcentage d'alphabétisation augmente avec le nombre d'années d'étude dans une relation linéaire très forte (coef > 0.99).
+
